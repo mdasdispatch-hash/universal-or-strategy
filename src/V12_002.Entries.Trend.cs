@@ -439,12 +439,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         )
         {
             // Build 1102Y-V3 [MS-04a]: Register Master expected for E1 BEFORE submit.
+            // EPIC-4 P0 Fix #7: Synchronous call instead of deferred Enqueue
             int masterDeltaE1 = (direction == MarketPosition.Long) ? entry1Qty : -entry1Qty;
-            {
-                var _aek966 = ExpKey(Account.Name);
-                var _aed966 = (masterDeltaE1);
-                Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966));
-            }
+            AddExpectedPositionDeltaLocked(ExpKey(Account.Name), masterDeltaE1);
 
             // Submit Entry 1 limit order
             entryOrder1 =
@@ -584,7 +581,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             string entry2Name
         )
         {
-            // NEW: Quantity validation
+            // EPIC-4 P0 Fix #6: Use PositionSize instead of maxContracts for clamping
             totalContracts = ClampEntryQuantity(totalContracts, "TREND_DispatchSima");
 
             // V12.1: Smart Dispatch to SIMA Fleet

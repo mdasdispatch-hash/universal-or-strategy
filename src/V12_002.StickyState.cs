@@ -65,6 +65,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
+                // EPIC-4 P0 Fix #2: Compute checksum over canonical payload (checksum field empty)
+                snapshot.ChecksumSHA256 = string.Empty;
                 string json = SerializeSnapshot(snapshot);
                 snapshot.ChecksumSHA256 = ComputeSHA256(json);
                 string jsonWithChecksum = SerializeSnapshot(snapshot);
@@ -145,9 +147,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool ValidateSnapshotIntegrity(StateSnapshot snapshot, string json)
         {
-            string computedChecksum = ComputeSHA256(json);
+            // EPIC-4 P0 Fix #2: Compute checksum over canonical payload (same as write)
+            string storedChecksum = snapshot.ChecksumSHA256;
+            snapshot.ChecksumSHA256 = string.Empty;
+            string canonicalJson = SerializeSnapshot(snapshot);
+            string computedChecksum = ComputeSHA256(canonicalJson);
+            snapshot.ChecksumSHA256 = storedChecksum;
 
-            if (snapshot.ChecksumSHA256 != computedChecksum)
+            if (storedChecksum != computedChecksum)
             {
                 Print(
                     string.Format(

@@ -98,7 +98,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             private readonly TimeSpan _resetTimeout;
             private int _failureCount = 0;
             private long _lastFailureTicks = 0;
-            private volatile bool _isOpen = false;
+            private int _isOpen = 0;
 
             public CircuitBreaker(int failureThreshold, TimeSpan resetTimeout)
             {
@@ -106,7 +106,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 _resetTimeout = resetTimeout;
             }
 
-            public bool IsOpen => _isOpen;
+            public bool IsOpen => Interlocked.CompareExchange(ref _isOpen, 0, 0) == 1;
 
             /// <summary>
             /// Record successful operation. Resets failure count atomically.
@@ -115,7 +115,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             public void RecordSuccess()
             {
                 Interlocked.Exchange(ref _failureCount, 0);
-                _isOpen = false;
+                Interlocked.Exchange(ref _isOpen, 0);
             }
 
             /// <summary>
@@ -129,7 +129,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (newCount >= _failureThreshold)
                 {
-                    _isOpen = true;
+                    Interlocked.Exchange(ref _isOpen, 1);
                 }
             }
 
@@ -139,7 +139,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             /// </summary>
             public bool TryReset()
             {
-                if (!_isOpen)
+                if (Interlocked.CompareExchange(ref _isOpen, 0, 0) == 0)
                     return false;
 
                 long lastFailure = Interlocked.Read(ref _lastFailureTicks);
@@ -148,7 +148,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (elapsed >= _resetTimeout.Ticks)
                 {
                     Interlocked.Exchange(ref _failureCount, 0);
-                    _isOpen = false;
+                    Interlocked.Exchange(ref _isOpen, 0);
                     return true;
                 }
 
@@ -180,16 +180,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return ValidationResult.InvalidSyntax;
             }
 
-            if (!_ipcCommandRateLimiter.TryAcquire())
-            {
-                Print(string.Format("[IPC][HARDENING] Rate limit exceeded for: {0}", action));
-                return ValidationResult.RateLimitExceeded;
-            }
-
+            // EPIC-4 P0 Fix #5: Check circuit breaker BEFORE consuming rate limiter slot
             if (_ipcMalformedCircuitBreaker.IsOpen)
             {
                 Print("[IPC][HARDENING] Circuit breaker OPEN - rejecting command");
                 return ValidationResult.CircuitBreakerOpen;
+            }
+
+            if (!_ipcCommandRateLimiter.TryAcquire())
+            {
+                Print(string.Format("[IPC][HARDENING] Rate limit exceeded for: {0}", action));
+                return ValidationResult.RateLimitExceeded;
             }
 
             if (IsAllowlistBypassAttempt(action, parts))
@@ -286,7 +287,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private bool IsAllowlistBypassAttempt(string action, string[] parts)
         {
-            string combined = action + string.Join("", parts);
+            // EPIC-4 P0 Fix #4: Normalize to uppercase for case-insensitive SQL keyword detection
+            string combined = (action + string.Join("", parts)).ToUpperInvariant();
 
             string[] sqlPatterns = new string[]
             {

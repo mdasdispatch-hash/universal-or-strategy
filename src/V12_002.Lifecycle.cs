@@ -397,6 +397,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             ipcCommandQueue = new ConcurrentQueue<string>();
             connectedClients = new ConcurrentDictionary<int, IpcClientSession>(); // Build 935 [Fix-1]: prevent NullReferenceException in StopIpcServer
 
+            // EPIC-4 P0 Fix #1: Initialize IPC hardening layer to prevent NullReferenceException
+            InitializeIpcHardening();
+
             // V12 SIMA: Initialize expected positions tracking
             expectedPositions = new ConcurrentDictionary<string, int>(2, 20); // Up to 20 accounts
 

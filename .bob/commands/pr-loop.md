@@ -30,9 +30,10 @@ Hand off:
 ```
 TASK: Verify PR Hygiene
 PROTOCOL:
-  1. Run `powershell -File .\scripts\verify_pr_hygiene.ps1`.
-  2. If FAIL: HALT and report the violation (e.g. "Diff > 10k" or "Branch is dirty").
-  3. If PASS: Advance to Step 1.
+  1. Run `git fetch origin main && git rebase origin/main`.
+  2. Run `powershell -File .\scripts\verify_pr_hygiene.ps1`.
+  3. If FAIL: HALT and report the violation (e.g. "Diff > 10k" or "Branch is dirty").
+  4. If PASS: Advance to Step 1.
 ```
 
 ### Step 1: Local Integrity (Goal: 15/15)

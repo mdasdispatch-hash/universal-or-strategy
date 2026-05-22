@@ -265,6 +265,35 @@ If all complete: advance to EPIC COMPLETE.
 
 ---
 
+## PHASE 6: PR SUBMISSION & PERFECTION
+
+**Switch to: Advanced mode**
+
+Hand off this exact task:
+```
+EPIC: $1
+TASK: Submit PR and start /pr-loop
+PROTOCOL:
+  1. git fetch origin main && git rebase origin/main
+  2. gh pr create --title "[$1] EPIC COMPLETE" --body "Automated PR for epic $1 implementation." --label "epic-run"
+  3. Extract the <PR_NUMBER> from the `gh pr create` output.
+  4. Emit: [PR-SUBMITTED] PR #<PR_NUMBER>
+```
+
+When Advanced mode outputs [PR-SUBMITTED] PR #<PR_NUMBER>:
+
+**Switch to: Orchestrator mode**
+
+Hand off this exact task:
+```
+EPIC: $1
+TASK: Run /pr-loop <PR_NUMBER>
+GOAL: Drive the current branch to 100/100 PHS.
+STOP when /pr-loop outputs [PHS-PERFECT].
+```
+
+---
+
 ## EPIC COMPLETE
 
 Output the full summary (you generate this directly, no mode switch):
@@ -283,6 +312,7 @@ DNA Audit
   CYC floor   : ALL targets below 20
 
 Commits: [list of hashes with BUILD_TAGs]
+PHS     : 100/100 (PERFECT)
 ============================================================
-Branch ready for PR. Suggest: /review to generate PR description.
+Branch ready for merge.
 ```

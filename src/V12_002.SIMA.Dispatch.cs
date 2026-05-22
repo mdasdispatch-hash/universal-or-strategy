@@ -19,14 +19,24 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Shapes;
+using NinjaTrader.Cbi;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
+using NinjaTrader.Data;
+using NinjaTrader.Gui;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Tools;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.Strategies;
 using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies

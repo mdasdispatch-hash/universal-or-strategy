@@ -44,7 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "1111.009-epic4-sticky-state"; // EPIC-4 Ticket 02: Sticky State Persistence Layer
+        public const string BUILD_TAG = "1111.009-epic4-ipc-hardening"; // EPIC-4 Ticket 03: IPC Hardening Layer
 
         public class UILiveTargetSnapshot
         {

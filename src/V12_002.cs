@@ -44,7 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "1111.007-reaper-t2"; // REAPER-EXTRACT Ticket 02: Orphan Safety Module
+        public const string BUILD_TAG = "1111.009-epic4-sticky-state"; // EPIC-4 Ticket 02: Sticky State Persistence Layer
 
         public class UILiveTargetSnapshot
         {
@@ -295,6 +295,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Build 1103: Sticky State persistence
         private string _stickyLeaderAccount; // Persisted leader account name
         private Dictionary<string, bool> _pendingStickyFleetToggles; // Deferred fleet toggles (applied after enumeration)
+
+        // EPIC-4 Ticket 02: Sticky State persistence layer fields
+        private bool _stickyStateEnabled = true;
+        private string _stickyStatePath = string.Empty;
+        private long _lastSnapshotTicks = 0;
+        private int _stickyDirtyFlag = 0; // Atomic dirty flag (0=clean, 1=dirty)
 
         private DateTime lastStopManagementTime; // V8.13: Stop management throttling (100ms)
 

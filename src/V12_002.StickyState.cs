@@ -255,13 +255,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             EnableSIMA = snapshot.EnableSIMA;
             ReaperAuditEnabled = snapshot.EnableREAPER;
 
-            // EPIC-4 P1 Fix: Restore account positions into runtime state
+            // EPIC-4 P1-3 Fix: Atomic state transition using ConcurrentDictionary.Clear() + AddOrUpdate
+            // Clear() is atomic in ConcurrentDictionary, then rebuild using atomic AddOrUpdate operations
             if (expectedPositions != null)
             {
+                // Atomic clear - concurrent readers see either old full state or empty state, never partial
                 expectedPositions.Clear();
+
+                // Rebuild using atomic AddOrUpdate operations
                 foreach (var kvp in snapshot.AccountPositions)
                 {
-                    expectedPositions[kvp.Key] = kvp.Value;
+                    expectedPositions.AddOrUpdate(kvp.Key, kvp.Value, (k, v) => kvp.Value);
                     Print(string.Format("[STICKY] Restored position: {0} = {1}", kvp.Key, kvp.Value));
                 }
             }

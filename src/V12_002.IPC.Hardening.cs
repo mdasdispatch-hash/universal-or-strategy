@@ -214,7 +214,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             return ValidationResult.Valid;
         }
 
-        // EPIC-4 P0 Fix #1: Static readonly arrays to eliminate hot-path heap allocations (1600 req/sec)
+        // EPIC-4 P0-1 Fix: Aligned ValidIpcActions with AllowedIpcActions HashSet from V12_002.UI.IPC.cs
+        // This prevents circuit breaker trips from legitimate commands being rejected as "unknown"
+        // Static readonly array eliminates hot-path heap allocations (1600 req/sec)
         private static readonly string[] ValidIpcActions = new string[]
         {
             "TRIM_25",
@@ -253,15 +255,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             "FFMA_DISARM",
             "GET_LAYOUT",
             "DIAG_IPC",
-            "TOGGLE_ACCOUNT",
-            "GET_FLEET",
-            "ENABLE_SIMA",
-            "DISABLE_SIMA",
-            "ENABLE_REAPER",
-            "DISABLE_REAPER",
-            "SET_POSITION_SIZE",
-            "FLATTEN_ALL",
-            "EMERGENCY_STOP",
         };
 
         /// <summary>

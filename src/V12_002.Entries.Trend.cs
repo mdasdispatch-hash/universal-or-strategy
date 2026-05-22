@@ -473,13 +473,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     );
 
             // A1-1/A2-1: Null-abort rollback + stateLock wrap for E1 (Build 960 audit fix)
+            // EPIC-4 P2-4 Fix: Synchronous rollback for atomic unification with registration
             if (entryOrder1 == null)
             {
-                {
-                    var _aek966 = ExpKey(Account.Name);
-                    var _aed966 = (-masterDeltaE1);
-                    Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966));
-                }
+                AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaE1);
                 Print("[ENTRY_ABORT] TREND E1 SubmitOrderUnmanaged NULL for " + entry1Name + " -- rolled back.");
                 return false;
             }
@@ -541,13 +538,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     );
 
             // A1-1/A2-1: Null-abort rollback + stateLock wrap for E2 (Build 960 audit fix)
+            // EPIC-4 P2-4 Fix: Synchronous rollback for atomic unification with registration
             if (entryOrder2 == null)
             {
-                {
-                    var _aek966 = ExpKey(Account.Name);
-                    var _aed966 = (-masterDeltaE2);
-                    Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966));
-                }
+                AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaE2);
                 // Remove partnership references; HandleOrderCancelled will teardown E1 state naturally.
                 string removedPartner;
                 linkedTRENDEntries.TryRemove(entry1Name, out removedPartner);
@@ -954,13 +948,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     );
 
             // A1-1/A2-1: Null-abort rollback + stateLock wrap (Build 960 audit fix)
+            // EPIC-4 P2-4 Fix: Synchronous rollback for atomic unification with registration
             if (entryOrder == null)
             {
-                {
-                    var _aek966 = ExpKey(Account.Name);
-                    var _aed966 = (-masterDeltaTMNL);
-                    Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966));
-                }
+                AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaTMNL);
                 Print("[ENTRY_ABORT] TRENDManual SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
                 return false;
             }

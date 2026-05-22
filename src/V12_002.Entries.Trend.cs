@@ -507,12 +507,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             linkedTRENDEntries[entry2Name] = entry1Name;
 
             // Build 1102Y-V3 [MS-04b]: Register Master expected for E2 BEFORE submit.
+            // EPIC-4 P1 Fix: Synchronous call instead of deferred Enqueue (closes tracking window)
             int masterDeltaE2 = (direction == MarketPosition.Long) ? entry2Qty : -entry2Qty;
-            {
-                var _aek966 = ExpKey(Account.Name);
-                var _aed966 = (masterDeltaE2);
-                Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966));
-            }
+            AddExpectedPositionDeltaLocked(ExpKey(Account.Name), masterDeltaE2);
 
             // Submit Entry 2 limit order
             Order entryOrder2 =
@@ -932,12 +929,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         )
         {
             // Build 1102Y-V3 [MS-05]: Register Master expected BEFORE submit.
+            // EPIC-4 P1 Fix: Synchronous call instead of deferred Enqueue (closes tracking window)
             int masterDeltaTMNL = (direction == MarketPosition.Long) ? contracts : -contracts;
-            {
-                var _aek966 = ExpKey(Account.Name);
-                var _aed966 = (masterDeltaTMNL);
-                Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966));
-            }
+            AddExpectedPositionDeltaLocked(ExpKey(Account.Name), masterDeltaTMNL);
 
             // Submit LIMIT order at manual price
             Order entryOrder =

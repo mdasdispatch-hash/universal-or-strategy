@@ -213,7 +213,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Print(
                     string.Format(
                         "[STICKY] Rolled back to snapshot from {0}",
-                        new DateTime(backup.SnapshotTicks).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                        new DateTime(backup.SnapshotTicks, DateTimeKind.Utc).ToString(
+                            "yyyy-MM-dd HH:mm:ss",
+                            CultureInfo.InvariantCulture
+                        )
                     )
                 );
 
@@ -241,7 +244,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             Print(
                 string.Format(
                     "[STICKY] Restoring state from {0}",
-                    new DateTime(snapshot.SnapshotTicks).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                    new DateTime(snapshot.SnapshotTicks, DateTimeKind.Utc).ToString(
+                        "yyyy-MM-dd HH:mm:ss",
+                        CultureInfo.InvariantCulture
+                    )
                 )
             );
 
@@ -249,9 +255,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             EnableSIMA = snapshot.EnableSIMA;
             ReaperAuditEnabled = snapshot.EnableREAPER;
 
-            foreach (var kvp in snapshot.AccountPositions)
+            // EPIC-4 P1 Fix: Restore account positions into runtime state
+            if (expectedPositions != null)
             {
-                Print(string.Format("[STICKY] Snapshot position: {0} = {1}", kvp.Key, kvp.Value));
+                expectedPositions.Clear();
+                foreach (var kvp in snapshot.AccountPositions)
+                {
+                    expectedPositions[kvp.Key] = kvp.Value;
+                    Print(string.Format("[STICKY] Restored position: {0} = {1}", kvp.Key, kvp.Value));
+                }
             }
 
             Print("[STICKY] State restoration complete");

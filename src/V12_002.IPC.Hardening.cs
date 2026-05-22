@@ -287,9 +287,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private bool IsAllowlistBypassAttempt(string action, string[] parts)
         {
-            // EPIC-4 P0 Fix #4: Normalize to uppercase for case-insensitive SQL keyword detection
-            string combined = (action + string.Join("", parts)).ToUpperInvariant();
-
+            // EPIC-4 P1 Fix #2: Zero-allocation case-insensitive pattern matching (Jane Street HFT alignment)
+            // Use pre-uppercased patterns + IndexOf with OrdinalIgnoreCase to avoid ToUpperInvariant() heap allocation
             string[] sqlPatterns = new string[]
             {
                 "SELECT",
@@ -300,26 +299,53 @@ namespace NinjaTrader.NinjaScript.Strategies
                 "--",
                 "/*",
                 "*/",
-                "xp_",
-                "sp_",
+                "XP_",
+                "SP_",
             };
 
+            // Check action first (avoid Join allocation)
             foreach (string pattern in sqlPatterns)
             {
-                if (combined.Contains(pattern))
+                if (action.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    Print(string.Format("[IPC][HARDENING] SQL injection attempt detected: {0}", pattern));
                     return true;
                 }
             }
 
+            // Check each part separately (avoid Join allocation)
+            foreach (string part in parts)
+            {
+                foreach (string pattern in sqlPatterns)
+                {
+                    if (part.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        Print(string.Format("[IPC][HARDENING] SQL injection attempt detected: {0}", pattern));
+                        return true;
+                    }
+                }
+            }
+
+            // Check path traversal patterns (also zero-allocation)
             string[] pathPatterns = new string[] { "..", "~", "/etc/", "C:\\" };
+
             foreach (string pattern in pathPatterns)
             {
-                if (combined.Contains(pattern))
+                if (action.IndexOf(pattern, StringComparison.Ordinal) >= 0)
                 {
                     Print(string.Format("[IPC][HARDENING] Path traversal attempt detected: {0}", pattern));
                     return true;
+                }
+            }
+
+            foreach (string part in parts)
+            {
+                foreach (string pattern in pathPatterns)
+                {
+                    if (part.IndexOf(pattern, StringComparison.Ordinal) >= 0)
+                    {
+                        Print(string.Format("[IPC][HARDENING] Path traversal attempt detected: {0}", pattern));
+                        return true;
+                    }
                 }
             }
 

@@ -259,7 +259,7 @@ STOP when /pr-loop outputs [PHS-PERFECT].
 Mark ticket-XX complete in your running status.
 Check EXECUTION_GUIDE.md for the next ticket.
 If tickets remain: return to TICKET LOOP START.
-If all complete: advance to EPIC COMPLETE.
+If all complete: advance to PHASE 6: PR SUBMISSION & PERFECTION.
 
 ### TICKET LOOP END
 

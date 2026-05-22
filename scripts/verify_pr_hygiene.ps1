@@ -11,7 +11,7 @@ Write-Host "--- V12 PR HYGIENE GATE ---" -ForegroundColor Cyan
 # Ensure main is fetched
 git fetch origin $BaseBranch --quiet
 
-$mergeBase = git merge-base HEAD $BaseBranch
+$mergeBase = git merge-base HEAD origin/$BaseBranch
 $mainTip = git rev-parse origin/$BaseBranch
 
 if ($mergeBase -ne $mainTip) {

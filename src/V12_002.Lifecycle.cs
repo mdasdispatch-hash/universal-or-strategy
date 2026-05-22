@@ -249,13 +249,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             StopTargetHandling = StopTargetHandling.PerEntryExecution;
             IsUnmanaged = true;
 
+            // EPIC-4 P0 Fix #4: Remove generic path - will be set in DataLoaded with symbol-specific path
             _stickyStateEnabled = true;
-            _stickyStatePath = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                "NinjaTrader 8",
-                "SIMA_Logs",
-                "V12_002_state.json"
-            );
+            _stickyStatePath = string.Empty; // Will be set in DataLoaded
 
             // Session defaults (NY Open)
             SessionStart = DateTime.Parse("09:30", System.Globalization.CultureInfo.InvariantCulture);

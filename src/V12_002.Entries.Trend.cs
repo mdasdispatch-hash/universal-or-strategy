@@ -438,10 +438,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             out Order entryOrder1
         )
         {
+            // EPIC-4 P1 Fix #6: Clamp quantity BEFORE submission to prevent oversized orders
+            entry1Qty = ClampEntryQuantity(entry1Qty, "TREND_E1");
+            entry2Qty = ClampEntryQuantity(entry2Qty, "TREND_E2");
+
             // Build 1102Y-V3 [MS-04a]: Register Master expected for E1 BEFORE submit.
-            // EPIC-4 P0 Fix #7: Synchronous call instead of deferred Enqueue
+            // EPIC-4 P1 Fix #5: Use Enqueue for FSM atomicity consistency
             int masterDeltaE1 = (direction == MarketPosition.Long) ? entry1Qty : -entry1Qty;
-            AddExpectedPositionDeltaLocked(ExpKey(Account.Name), masterDeltaE1);
+            string accountKey = ExpKey(Account.Name);
+            Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(accountKey, masterDeltaE1));
 
             // Submit Entry 1 limit order
             entryOrder1 =

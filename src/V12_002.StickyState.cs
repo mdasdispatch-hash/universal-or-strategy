@@ -293,6 +293,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
+            // EPIC-4 P0 Fix #3: Consume dirty flag atomically before saving
+            int wasDirty = Interlocked.Exchange(ref _stickyDirtyFlag, 0);
+            if (wasDirty == 0)
+            {
+                // No changes since last save - skip write
+                return;
+            }
+
             StateSnapshot snapshot = CaptureStateSnapshot();
             WriteSnapshotAtomic(snapshot);
         }

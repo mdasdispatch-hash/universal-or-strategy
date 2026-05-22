@@ -48,8 +48,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 _requestTimestamps = new ConcurrentQueue<long>();
             }
 
+            // EPIC-4 P1 Fix #7: Atomic counter to prevent TOCTOU race
+            private int _atomicCount = 0;
+
             /// <summary>
             /// Attempt to acquire a rate limit slot. Returns true if under limit.
+            /// EPIC-4 P1 Fix #7: Uses atomic counter to prevent TOCTOU race between Count check and Enqueue.
             /// CYC: 3
             /// </summary>
             public bool TryAcquire()
@@ -59,8 +63,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 CleanupOldTimestamps(oneSecondAgo);
 
-                if (_requestTimestamps.Count >= _maxRequestsPerSecond)
+                // Atomic increment-and-check to prevent TOCTOU race
+                int newCount = Interlocked.Increment(ref _atomicCount);
+                if (newCount > _maxRequestsPerSecond)
                 {
+                    Interlocked.Decrement(ref _atomicCount);
                     return false;
                 }
 
@@ -70,6 +77,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             /// <summary>
             /// Remove timestamps older than cutoff. Lock-free cleanup using ConcurrentQueue atomics.
+            /// EPIC-4 P1 Fix #7: Decrements atomic counter when removing old timestamps.
             /// CYC: 2
             /// </summary>
             private void CleanupOldTimestamps(long cutoffTicks)
@@ -78,7 +86,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (oldestTicks < cutoffTicks)
                     {
-                        _requestTimestamps.TryDequeue(out _);
+                        if (_requestTimestamps.TryDequeue(out _))
+                        {
+                            Interlocked.Decrement(ref _atomicCount);
+                        }
                     }
                     else
                     {
@@ -203,8 +214,60 @@ namespace NinjaTrader.NinjaScript.Strategies
             return ValidationResult.Valid;
         }
 
+        // EPIC-4 P0 Fix #1: Static readonly arrays to eliminate hot-path heap allocations (1600 req/sec)
+        private static readonly string[] ValidIpcActions = new string[]
+        {
+            "TRIM_25",
+            "TRIM_50",
+            "CONFIG",
+            "SET_TRAIL",
+            "SET_CIT",
+            "LOCK_50",
+            "BE",
+            "BE_CUSTOM",
+            "BE_PLUS_2",
+            "BE_PLUS_1",
+            "FLATTEN_ONLY",
+            "FLATTEN",
+            "CANCEL_ALL",
+            "RESET_MEMORY",
+            "LONG",
+            "SHORT",
+            "OR_LONG",
+            "OR_SHORT",
+            "SET_SIMA",
+            "DIAG_FLEET",
+            "SET_RMA_MODE",
+            "SYNC_MODE",
+            "SET_TARGETS",
+            "MKT_SYNC",
+            "SYNC_ALL",
+            "SET_MODE",
+            "SET_LEADER_ACCOUNT",
+            "REQUEST_FLEET_STATE",
+            "SET_MANUAL_PRICE",
+            "TREND_MANUAL_LIMIT",
+            "RETEST_MANUAL_LIMIT",
+            "FFMA_MANUAL_LIMIT",
+            "FFMA_MANUAL_MARKET",
+            "FFMA_DISARM",
+            "GET_LAYOUT",
+            "DIAG_IPC",
+            "TOGGLE_ACCOUNT",
+            "GET_FLEET",
+            "ENABLE_SIMA",
+            "DISABLE_SIMA",
+            "ENABLE_REAPER",
+            "DISABLE_REAPER",
+            "SET_POSITION_SIZE",
+            "FLATTEN_ALL",
+            "EMERGENCY_STOP",
+        };
+
         /// <summary>
         /// Validate command format and parameters against allowlist.
+        /// EPIC-4 P0 Fix #1: Aligned with AllowedIpcActions to prevent circuit breaker trips.
+        /// EPIC-4 P0 Fix #2: Uses static readonly array to eliminate hot-path allocations.
         /// CYC: 4
         /// </summary>
         private bool CheckCommandSyntax(string action, string[] parts)
@@ -215,18 +278,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return false;
             }
 
-            string[] validActions = new string[]
-            {
-                "ENABLE_SIMA",
-                "DISABLE_SIMA",
-                "ENABLE_REAPER",
-                "DISABLE_REAPER",
-                "SET_POSITION_SIZE",
-                "FLATTEN_ALL",
-                "EMERGENCY_STOP",
-            };
-
-            if (!validActions.Contains(action))
+            if (!ValidIpcActions.Contains(action))
             {
                 Print(string.Format("[IPC][HARDENING] Unknown action: {0}", action));
                 return false;
@@ -281,30 +333,32 @@ namespace NinjaTrader.NinjaScript.Strategies
             Interlocked.Increment(ref _ipcBackpressureNackCount);
         }
 
+        // EPIC-4 P0 Fix #2: Static readonly arrays to eliminate hot-path heap allocations
+        private static readonly string[] SqlInjectionPatterns = new string[]
+        {
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "DROP",
+            "--",
+            "/*",
+            "*/",
+            "XP_",
+            "SP_",
+        };
+
+        private static readonly string[] PathTraversalPatterns = new string[] { "..", "~", "/etc/", "C:\\" };
+
         /// <summary>
         /// Detect SQL injection and path traversal attempts.
+        /// EPIC-4 P0 Fix #2: Uses static readonly arrays to eliminate hot-path allocations.
         /// CYC: 4
         /// </summary>
         private bool IsAllowlistBypassAttempt(string action, string[] parts)
         {
-            // EPIC-4 P1 Fix #2: Zero-allocation case-insensitive pattern matching (Jane Street HFT alignment)
-            // Use pre-uppercased patterns + IndexOf with OrdinalIgnoreCase to avoid ToUpperInvariant() heap allocation
-            string[] sqlPatterns = new string[]
-            {
-                "SELECT",
-                "INSERT",
-                "UPDATE",
-                "DELETE",
-                "DROP",
-                "--",
-                "/*",
-                "*/",
-                "XP_",
-                "SP_",
-            };
-
             // Check action first (avoid Join allocation)
-            foreach (string pattern in sqlPatterns)
+            foreach (string pattern in SqlInjectionPatterns)
             {
                 if (action.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
@@ -315,7 +369,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Check each part separately (avoid Join allocation)
             foreach (string part in parts)
             {
-                foreach (string pattern in sqlPatterns)
+                foreach (string pattern in SqlInjectionPatterns)
                 {
                     if (part.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
                     {
@@ -325,10 +379,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            // Check path traversal patterns (also zero-allocation)
-            string[] pathPatterns = new string[] { "..", "~", "/etc/", "C:\\" };
-
-            foreach (string pattern in pathPatterns)
+            // Check path traversal patterns
+            foreach (string pattern in PathTraversalPatterns)
             {
                 if (action.IndexOf(pattern, StringComparison.Ordinal) >= 0)
                 {
@@ -339,7 +391,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             foreach (string part in parts)
             {
-                foreach (string pattern in pathPatterns)
+                foreach (string pattern in PathTraversalPatterns)
                 {
                     if (part.IndexOf(pattern, StringComparison.Ordinal) >= 0)
                     {

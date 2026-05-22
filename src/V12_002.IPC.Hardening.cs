@@ -296,24 +296,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         /// <summary>
         /// Get expected parameter count for a given action.
-        /// CYC: 3
+        /// EPIC-4 P0-1 Fix: Removed phantom commands (ENABLE_SIMA, FLATTEN_ALL, etc.) that don't exist in ValidIpcActions.
+        /// All commands in ValidIpcActions have variable parameter counts handled by dispatcher, so default to 0.
+        /// CYC: 1
         /// </summary>
         private int GetExpectedParameterCount(string action)
         {
-            switch (action)
-            {
-                case "SET_POSITION_SIZE":
-                    return 1;
-                case "ENABLE_SIMA":
-                case "DISABLE_SIMA":
-                case "ENABLE_REAPER":
-                case "DISABLE_REAPER":
-                case "FLATTEN_ALL":
-                case "EMERGENCY_STOP":
-                    return 0;
-                default:
-                    return 0;
-            }
+            // All valid IPC actions have their parameter validation handled by the dispatcher
+            // This method now serves as a placeholder for future parameter count enforcement
+            return 0;
         }
 
         /// <summary>

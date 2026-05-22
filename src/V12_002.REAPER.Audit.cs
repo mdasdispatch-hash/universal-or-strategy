@@ -54,6 +54,31 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 lastReaperLog = DateTime.UtcNow;
             }
+
+            AuditIpcCommandQueue(shouldLog);
+        }
+
+        private void AuditIpcCommandQueue(bool shouldLog)
+        {
+            int queueDepth = GetPhotonDispatchRingDepth();
+            int threshold = 1600; // 80% of 2000 capacity
+
+            if (queueDepth >= threshold)
+            {
+                string msg = string.Format(
+                    "[REAPER][IPC] Queue depth critical: {0}/{1} (threshold: {2})",
+                    queueDepth,
+                    2000,
+                    threshold
+                );
+                Print(msg);
+
+                // TODO: Trigger backpressure NACK (Epic 4 Ticket 03)
+            }
+            else if (shouldLog && queueDepth > 0)
+            {
+                Print(string.Format("[REAPER][IPC] Queue depth: {0}", queueDepth));
+            }
         }
 
         // Build 935 [REAPER-B935-003]: Per-account audit logic extracted from AuditApexPositions.

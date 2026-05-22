@@ -406,6 +406,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Build 935 [B935-P2]: Extracted IPC sub-handlers
 
         /// <summary>
+        /// Get current photon dispatch ring depth for monitoring.
+        /// </summary>
+        internal int GetPhotonDispatchRingDepth()
+        {
+            return _photonDispatchRing?.Count ?? 0;
+        }
+
+        /// <summary>
         /// Handles TRIM_25 / TRIM_50 -- partial position close by percentage.
         /// </summary>
         #endregion

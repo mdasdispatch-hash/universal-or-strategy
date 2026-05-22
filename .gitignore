@@ -62,3 +62,6 @@ infrastructure/
 experts/
 docs/brain/run2-stickystate/
 agy_log.txt
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

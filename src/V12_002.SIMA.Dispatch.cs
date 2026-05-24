@@ -1054,14 +1054,26 @@ namespace NinjaTrader.NinjaScript.Strategies
                         );
                     }
                     // Rollback state
-                    RollbackCircuitBreakerState(syncPending, expectedKey, reservedDelta, poolSlotIndex, fleetEntryName);
+                    RollbackCircuitBreakerState(
+                        ref syncPending,
+                        expectedKey,
+                        ref reservedDelta,
+                        poolSlotIndex,
+                        fleetEntryName
+                    );
                     circuitBreakerTripped = true;
                     return false;
                 }
                 // Circuit breaker already tripped - reject silently
                 if (Volatile.Read(ref _reaperCircuitBreakerTripped) == 1)
                 {
-                    RollbackCircuitBreakerState(syncPending, expectedKey, reservedDelta, poolSlotIndex, fleetEntryName);
+                    RollbackCircuitBreakerState(
+                        ref syncPending,
+                        expectedKey,
+                        ref reservedDelta,
+                        poolSlotIndex,
+                        fleetEntryName
+                    );
                     circuitBreakerTripped = true;
                     return false;
                 }
@@ -1077,17 +1089,24 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// P2-3: Rollback helper for circuit breaker state cleanup.
         /// </summary>
         private void RollbackCircuitBreakerState(
-            bool syncPending,
+            ref bool syncPending,
             string expectedKey,
-            int reservedDelta,
+            ref int reservedDelta,
             int poolSlotIndex,
             string fleetEntryName
         )
         {
+            // Unconditional state resets (P0 race condition fix)
             if (syncPending)
+            {
                 ClearDispatchSyncPending(expectedKey);
+                syncPending = false;
+            }
             if (reservedDelta != 0)
+            {
                 AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
+                reservedDelta = 0;
+            }
             if (poolSlotIndex >= 0)
             {
                 _photonPool.ReleaseByIndex(poolSlotIndex);

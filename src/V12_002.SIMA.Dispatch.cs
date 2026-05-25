@@ -1021,14 +1021,22 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         /// <summary>
-        /// P2-3: Circuit breaker helper to reduce cyclomatic complexity.
-        /// Attempts to increment pending dispatch count with CAS loop.
-        /// Returns true if enqueued successfully, false if circuit breaker tripped.
-        /// </summary>
-        /// <summary>
-        /// P2-3: Circuit breaker check with atomic CAS loop.
+        /// P2-3: Circuit breaker gate for fleet dispatch with atomic CAS loop.
+        /// Atomically increments _pendingFleetDispatchCount if below threshold.
+        /// If threshold exceeded or breaker already tripped, rolls back state and returns false.
         /// CRITICAL: syncPending and reservedDelta are passed by ref to allow rollback mutations to propagate to caller.
         /// </summary>
+        /// <param name="syncPending">Sync pending flag (passed by ref, may be reset to false on rollback)</param>
+        /// <param name="expectedKey">Account key for position tracking</param>
+        /// <param name="reservedDelta">Reserved position delta (passed by ref, may be reset to 0 on rollback)</param>
+        /// <param name="poolSlotIndex">Photon pool slot index for cleanup on rollback</param>
+        /// <param name="fleetEntryName">Fleet entry name for state cleanup on rollback</param>
+        /// <param name="circuitBreakerTripped">Output flag indicating if circuit breaker was tripped</param>
+        /// <returns>True if dispatch allowed; false if circuit breaker tripped.</returns>
+        /// <remarks>
+        /// Callers MUST NOT reuse syncPending or reservedDelta values after this method returns false.
+        /// All state mutations during rollback are atomic (lock-free).
+        /// </remarks>
         private bool TryIncrementDispatchCountWithCircuitBreaker(
             ref bool syncPending,
             string expectedKey,
@@ -1091,7 +1099,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         /// <summary>
         /// P2-3: Rollback helper for circuit breaker state cleanup.
+        /// Atomically resets all dispatch-related state when circuit breaker trips.
         /// </summary>
+        /// <param name="syncPending">Sync pending flag (passed by ref, will be reset to false if true)</param>
+        /// <param name="expectedKey">Account key for position tracking rollback</param>
+        /// <param name="reservedDelta">Reserved position delta (passed by ref, will be reset to 0 if non-zero)</param>
+        /// <param name="poolSlotIndex">Photon pool slot index to release (if >= 0)</param>
+        /// <param name="fleetEntryName">Fleet entry name for complete state cleanup (if not null)</param>
+        /// <remarks>
+        /// All operations are lock-free and atomic. This method is called when:
+        /// 1. Circuit breaker threshold is exceeded
+        /// 2. Circuit breaker is already tripped
+        /// Ensures no partial state remains after a rejected dispatch.
+        /// </remarks>
         private void RollbackCircuitBreakerState(
             ref bool syncPending,
             string expectedKey,

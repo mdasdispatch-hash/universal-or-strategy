@@ -476,15 +476,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             try
             {
-                // [939-P0]: Snapshot Positions to prevent broker-thread mutation during iteration.
-                // T-W1-Perf: for-loop replaces FirstOrDefault lambda -- eliminates delegate allocation.
-                Position[] _posSnapshot = acct.Positions.ToArray();
+                // T-W1-Perf: Direct iteration over Positions collection - zero heap allocations
+                // Early-break on match preserves O(1) best-case performance
                 Position brokerPos = null;
-                for (int _pi = 0; _pi < _posSnapshot.Length; _pi++)
+                foreach (var pos in acct.Positions)
                 {
-                    if (_posSnapshot[_pi] != null && _posSnapshot[_pi].Instrument.FullName == Instrument.FullName)
+                    if (pos != null && pos.Instrument.FullName == Instrument.FullName)
                     {
-                        brokerPos = _posSnapshot[_pi];
+                        brokerPos = pos;
                         break;
                     }
                 }

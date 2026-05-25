@@ -1026,11 +1026,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// If threshold exceeded or breaker already tripped, rolls back state and returns false.
         /// CRITICAL: syncPending and reservedDelta are passed by ref to allow rollback mutations to propagate to caller.
         /// </summary>
-        /// <param name="syncPending">Sync pending flag (passed by ref, may be reset to false on rollback)</param>
-        /// <param name="expectedKey">Account key for position tracking</param>
-        /// <param name="reservedDelta">Reserved position delta (passed by ref, may be reset to 0 on rollback)</param>
-        /// <param name="poolSlotIndex">Photon pool slot index for cleanup on rollback</param>
-        /// <param name="fleetEntryName">Fleet entry name for state cleanup on rollback</param>
+        /// <param name="syncPending">Sync pending flag (passed by ref, may be reset to false on rollback).</param>
+        /// <param name="expectedKey">Account key for position tracking.</param>
+        /// <param name="reservedDelta">Reserved position delta (passed by ref, may be reset to 0 on rollback).</param>
+        /// <param name="poolSlotIndex">Photon pool slot index for cleanup on rollback.</param>
+        /// <param name="fleetEntryName">Fleet entry name for state cleanup on rollback.</param>
         /// <param name="circuitBreakerTripped">Output flag indicating if circuit breaker was tripped</param>
         /// <returns>True if dispatch allowed; false if circuit breaker tripped.</returns>
         /// <remarks>
@@ -1101,11 +1101,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// P2-3: Rollback helper for circuit breaker state cleanup.
         /// Atomically resets all dispatch-related state when circuit breaker trips.
         /// </summary>
-        /// <param name="syncPending">Sync pending flag (passed by ref, will be reset to false if true)</param>
-        /// <param name="expectedKey">Account key for position tracking rollback</param>
-        /// <param name="reservedDelta">Reserved position delta (passed by ref, will be reset to 0 if non-zero)</param>
-        /// <param name="poolSlotIndex">Photon pool slot index to release (if >= 0)</param>
-        /// <param name="fleetEntryName">Fleet entry name for complete state cleanup (if not null)</param>
+        /// <param name="syncPending">Sync pending flag (passed by ref, will be reset to false if true).</param>
+        /// <param name="expectedKey">Account key for position tracking rollback.</param>
+        /// <param name="reservedDelta">Reserved position delta (passed by ref, will be reset to 0 if non-zero).</param>
+        /// <param name="poolSlotIndex">Photon pool slot index to release (if >= 0).</param>
+        /// <param name="fleetEntryName">Fleet entry name for complete state cleanup (if not null).</param>
         /// <remarks>
         /// All operations are lock-free and atomic. This method is called when:
         /// 1. Circuit breaker threshold is exceeded
@@ -1126,11 +1126,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ClearDispatchSyncPending(expectedKey);
                 syncPending = false;
             }
+
             if (reservedDelta != 0)
             {
                 AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
                 reservedDelta = 0;
             }
+
             if (poolSlotIndex >= 0)
             {
                 _photonPool.ReleaseByIndex(poolSlotIndex);

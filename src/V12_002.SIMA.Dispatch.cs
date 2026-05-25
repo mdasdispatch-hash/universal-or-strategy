@@ -796,9 +796,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             // REAPER-EXPANSION Ticket 2: Circuit breaker check with atomic CAS loop
             if (
                 !TryIncrementDispatchCountWithCircuitBreaker(
-                    syncPending,
+                    ref syncPending,
                     expectedKey,
-                    reservedDelta,
+                    ref reservedDelta,
                     _poolSlotIndex,
                     fleetEntryName,
                     out bool circuitBreakerTripped
@@ -965,9 +965,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             // REAPER-EXPANSION Ticket 2: Circuit breaker check with atomic CAS loop
             if (
                 !TryIncrementDispatchCountWithCircuitBreaker(
-                    syncPending,
+                    ref syncPending,
                     expectedKey,
-                    reservedDelta,
+                    ref reservedDelta,
                     _poolSlotIndexLmt,
                     fleetEntryName,
                     out bool circuitBreakerTrippedLmt
@@ -1025,10 +1025,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Attempts to increment pending dispatch count with CAS loop.
         /// Returns true if enqueued successfully, false if circuit breaker tripped.
         /// </summary>
+        /// <summary>
+        /// P2-3: Circuit breaker check with atomic CAS loop.
+        /// CRITICAL: syncPending and reservedDelta are passed by ref to allow rollback mutations to propagate to caller.
+        /// </summary>
         private bool TryIncrementDispatchCountWithCircuitBreaker(
-            bool syncPending,
+            ref bool syncPending,
             string expectedKey,
-            int reservedDelta,
+            ref int reservedDelta,
             int poolSlotIndex,
             string fleetEntryName,
             out bool circuitBreakerTripped
